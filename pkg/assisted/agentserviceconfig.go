@@ -440,7 +440,7 @@ func (builder *AgentServiceConfigBuilder) DeleteAndWait(timeout time.Duration) e
 		return err
 	}
 
-	glog.V(100).Infof(`Deleting agentserviceconfig %s and 
+	glog.V(100).Infof(`Deleting agentserviceconfig %s and
 	waiting for the defined period until it is removed`,
 		builder.Definition.Name)
 
