@@ -1,73 +1,71 @@
 package secret
 
 import (
-	"testing"
-        "fmt"
+	"fmt"
 	"github.com/openshift-kni/eco-goinfra/pkg/clients"
 	operatorv1 "github.com/openshift/api/operator/v1"
-	corev1 "k8s.io/api/core/v1"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"testing"
 )
 
 var (
 	defaultSecretName      = "test-name"
 	defaultSecretNamespace = "test-namespace"
-	defaultSecretType = "test-secrettype"
+	defaultSecretType      = "test-secrettype"
 )
 
 func TestSecretPull(t *testing.T) {
 	testCases := []struct {
-		secretName         string
-		secretNamespace    string
+		secretName          string
+		secretNamespace     string
 		expectedError       bool
 		addToRuntimeObjects bool
 		client              bool
 		expectedErrorText   string
 	}{
 		{
-                        secretName:          defaultSecretName,
-                        secretNamespace:     defaultSecretNamespace,
+			secretName:          defaultSecretName,
+			secretNamespace:     defaultSecretNamespace,
 			expectedError:       false,
 			addToRuntimeObjects: true,
 			client:              true,
 			expectedErrorText:   "",
 		},
 		{
-                        secretName:          defaultSecretName,
-                        secretNamespace:     defaultSecretNamespace,
+			secretName:          defaultSecretName,
+			secretNamespace:     defaultSecretNamespace,
 			expectedError:       true,
 			addToRuntimeObjects: false,
 			client:              true,
 			expectedErrorText:   "secret object test not found in namespace test",
-
 		},
 		{
-                        secretName:          "",
-                        secretNamespace:     defaultSecretNamespace,
+			secretName:          "",
+			secretNamespace:     defaultSecretNamespace,
 			expectedError:       true,
 			addToRuntimeObjects: true,
 			client:              true,
 			expectedErrorText:   "secret name cannot be empty",
 		},
 		{
-                        secretName:          defaultSecretName,
-                        secretNamespace:     "",
+			secretName:          defaultSecretName,
+			secretNamespace:     "",
 			expectedError:       true,
 			addToRuntimeObjects: true,
 			client:              true,
 			expectedErrorText:   "secret namespace cannot be empty",
 		},
-                {
-                        secretName:          defaultSecretName,
-                        secretNamespace:     defaultSecretNamespace,
+		{
+			secretName:          defaultSecretName,
+			secretNamespace:     defaultSecretNamespace,
 			expectedError:       true,
-                        addToRuntimeObjects: true,
+			addToRuntimeObjects: true,
 			client:              false,
-                        expectedErrorText:   "secret client cannot be empty",
-
-                },
+			expectedErrorText:   "secret client cannot be empty",
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -88,11 +86,11 @@ func TestSecretPull(t *testing.T) {
 			K8sMockObjects: runtimeObjects,
 		})
 
-                if testCase.client {
-                        testSettings = clients.GetTestClients(clients.TestClientParams{
-                                K8sMockObjects: runtimeObjects,
-                        })
-                }
+		if testCase.client {
+			testSettings = clients.GetTestClients(clients.TestClientParams{
+				K8sMockObjects: runtimeObjects,
+			})
+		}
 
 		builderResult, err := Pull(testSettings, testCase.secretName, testCase.secretNamespace)
 
@@ -110,92 +108,91 @@ func TestSecretPull(t *testing.T) {
 }
 
 func TestSecretNewBuilder(t *testing.T) {
-        testCases := []struct {
-                name          string
-                namespace     string
-                secretType    string
-                expectedError string
-        }{
-                {
-                        name:          defaultSecretName,
-                        namespace:     defaultSecretNamespace,
-                        secretType:    defaultSecretType,
-                        expectedError: "",
-                },
-                {
-                        name:          "",
-                        namespace:     defaultSecretNamespace,
-                        secretType:    defaultSecretType,
-                        expectedError: "secret 'name' cannot be empty",
-                },
-                {
-                        name:          defaultSecretName,
-                        namespace:     "",
-                        secretType:    defaultSecretType,
-                        expectedError: "secret 'nsname' cannot be empty",
-                },
-                {
-                        name:          defaultSecretName,
-                        namespace:     defaultSecretNamespace,
-                        secretType:    "",
-                        expectedError: "secret 'secretType' cannot be empty",
-                },
+	testCases := []struct {
+		name          string
+		namespace     string
+		secretType    string
+		expectedError string
+	}{
+		{
+			name:          defaultSecretName,
+			namespace:     defaultSecretNamespace,
+			secretType:    defaultSecretType,
+			expectedError: "",
+		},
+		{
+			name:          "",
+			namespace:     defaultSecretNamespace,
+			secretType:    defaultSecretType,
+			expectedError: "secret 'name' cannot be empty",
+		},
+		{
+			name:          defaultSecretName,
+			namespace:     "",
+			secretType:    defaultSecretType,
+			expectedError: "secret 'nsname' cannot be empty",
+		},
+		{
+			name:          defaultSecretName,
+			namespace:     defaultSecretNamespace,
+			secretType:    "",
+			expectedError: "secret 'secretType' cannot be empty",
+		},
+	}
 
-        }
+	for _, testCase := range testCases {
+		testSettings := clients.GetTestClients(clients.TestClientParams{})
+		testSecretBuilder := NewBuilder(testSettings, testCase.name, testCase.namespace, testCase.secretType)
+		assert.Equal(t, testCase.expectedError, testSecretBuilder.errorMsg)
+		assert.NotNil(t, testSecretBuilder.Definition)
 
-        for _, testCase := range testCases {
-                testSettings := clients.GetTestClients(clients.TestClientParams{})
-                testSecretBuilder := NewBuilder(testSettings, testCase.name, testCase.namespace, testCase.secretType)
-                assert.Equal(t, testCase.expectedError, testSecretBuilder.errorMsg)
-                assert.NotNil(t, testSecretBuilder.Definition)
-
-                if testCase.expectedError == "" {
-                        assert.Equal(t, testCase.name, testSecretBuilder.Definition.Name)
-                        assert.Equal(t, testCase.namespace, testSecretBuilder.Definition.Namespace)
-                }
-        }
+		if testCase.expectedError == "" {
+			assert.Equal(t, testCase.name, testSecretBuilder.Definition.Name)
+			assert.Equal(t, testCase.namespace, testSecretBuilder.Definition.Namespace)
+		}
+	}
 }
 
 func TestSecretCreate(t *testing.T) {
-        testCases := []struct {
-                testSecret *SecretBuilder
-                expectedError     error
-        }{
-                {
-                        testSecret: buildValidSecretBuilder(buildSecretWithDummyObject()),
-                        expectedError:     nil,
-                },
-                {
-                        testSecret: buildInValidSecretBuilder(buildTestClientWithDummyObject()),
-                        expectedError:     fmt.Errorf("Secret 'test-secret' cannot be empty list"),
-                },
-        }
+	testCases := []struct {
+		testSecret    *SecretBuilder
+		expectedError error
+	}{
+		{
+			testSecret:    buildValidSecretBuilder(buildSecretWithDummyObject()),
+			expectedError: nil,
+		},
+		{
+			testSecret:    buildInValidSecretBuilder(buildTestClientWithDummyObject()),
+			expectedError: fmt.Errorf("Secret 'test-secret' cannot be empty list"),
+		},
+	}
 
-        for _, testCase := range testCases {
-                SecretBuilder, err := testCase.testSecret.Create()
-                assert.Equal(t, err, testCase.expectedError)
+	for _, testCase := range testCases {
+		SecretBuilder, err := testCase.testSecret.Create()
+		assert.Equal(t, err, testCase.expectedError)
 
-                if testCase.expectedError == nil {
-                        assert.Equal(t, SecretBuilder.Definition, SecretBuilder.Object)
-                }
-        }
+		if testCase.expectedError == nil {
+			assert.Equal(t, SecretBuilder.Definition, SecretBuilder.Object)
+		}
+	}
 }
 
 func TestSecretDelete(t *testing.T) {
 	testCases := []struct {
 		secretExistsAlready bool
-		name                 string
-		namespace            string
+		name                string
+		namespace           string
 	}{
 		{
 			secretExistsAlready: true,
-			name:                 defaultSecretName,
-			namespace:            defaultSecretNamespace,
+			name:                defaultSecretName,
+			namespace:           defaultSecretNamespace,
 		},
 		{
 			secretExistsAlready: false,
-			name:                 defaultSecretName,
-			namespace:            defaultSecretNamespace,
+			name:                defaultSecretName,
+			namespace:           defaultSecretNamespace,
 		},
 	}
 
@@ -225,18 +222,18 @@ func TestSecretDelete(t *testing.T) {
 func TestSecretExists(t *testing.T) {
 	testCases := []struct {
 		secretExistsAlready bool
-		name                 string
-		namespace            string
+		name                string
+		namespace           string
 	}{
 		{
 			secretExistsAlready: true,
-			name:                 defaultSecretName,
-			namespace:            defaultSecretNamespace,
+			name:                defaultSecretName,
+			namespace:           defaultSecretNamespace,
 		},
 		{
 			secretExistsAlready: false,
-			name:                 defaultSecretName,
-			namespace:            defaultSecretNamespace,
+			name:                defaultSecretName,
+			namespace:           defaultSecretNamespace,
 		},
 	}
 
@@ -430,85 +427,84 @@ func buildInValidSecretBuilder(apiClient *clients.Settings) *Builder {
 		Definition: &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      defaultSecretName,
-				Namespace: defaultSecretNamespace,         
+				Namespace: defaultSecretNamespace,
 			},
 		},
 	}
 	return secretBuilder
 }
 
-
 func buildTestClientWithDummyObject() *clients.Settings {
-        return clients.GetTestClients(clients.TestClientParams{
-                K8sMockObjects: buildDummySecret(),
-        })
+	return clients.GetTestClients(clients.TestClientParams{
+		K8sMockObjects: buildDummySecret(),
+	})
 }
 
 func buildDummySecret() []runtime.Object {
-        return append([]runtime.Object{}, &mlbtypes.Secret{
-                ObjectMeta: metav1.ObjectMeta{
-                        Name:      defaultSecretName,
-                        Namespace: defaultSecretNamespace,
-                },
-        })
+	return append([]runtime.Object{}, &mlbtypes.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      defaultSecretName,
+			Namespace: defaultSecretNamespace,
+		},
+	})
 }
 
 func TestSecretValidate(t *testing.T) {
-        testCases := []struct {
-                builderNil    bool
-                definitionNil bool
-                apiClientNil  bool
-                expectedError string
-        }{
-                {
-                        builderNil:    true,
-                        definitionNil: false,
-                        apiClientNil:  false,
-                        expectedError: "error: received nil Secret builder",
-                },
-                {
-                        builderNil:    false,
-                        definitionNil: true,
-                        apiClientNil:  false,
-                        expectedError: "can not redefine the undefined Secret",
-                },
-                {
-                        builderNil:    false,
-                        definitionNil: false,
-                        apiClientNil:  true,
-                        expectedError: "Secret builder cannot have nil apiClient",
-                },
-                {
-                        builderNil:    false,
-                        definitionNil: false,
-                        apiClientNil:  false,
-                        expectedError: "",
-                },
-        }
+	testCases := []struct {
+		builderNil    bool
+		definitionNil bool
+		apiClientNil  bool
+		expectedError string
+	}{
+		{
+			builderNil:    true,
+			definitionNil: false,
+			apiClientNil:  false,
+			expectedError: "error: received nil Secret builder",
+		},
+		{
+			builderNil:    false,
+			definitionNil: true,
+			apiClientNil:  false,
+			expectedError: "can not redefine the undefined Secret",
+		},
+		{
+			builderNil:    false,
+			definitionNil: false,
+			apiClientNil:  true,
+			expectedError: "Secret builder cannot have nil apiClient",
+		},
+		{
+			builderNil:    false,
+			definitionNil: false,
+			apiClientNil:  false,
+			expectedError: "",
+		},
+	}
 
-        for _, testCase := range testCases {
-                testBuilder, _ := buildTestBuilderWithFakeObjects(nil, "test", "test")
+	for _, testCase := range testCases {
+		testBuilder, _ := buildTestBuilderWithFakeObjects(nil, "test", "test")
 
-                if testCase.builderNil {
-                        testBuilder = nil
-                }
+		if testCase.builderNil {
+			testBuilder = nil
+		}
 
-                if testCase.definitionNil {
-                        testBuilder.Definition = nil
-                }
+		if testCase.definitionNil {
+			testBuilder.Definition = nil
+		}
 
-                if testCase.apiClientNil {
-                        testBuilder.apiClient = nil
-                }
+		if testCase.apiClientNil {
+			testBuilder.apiClient = nil
+		}
 
-                result, err := testBuilder.validate()
-                if testCase.expectedError != "" {
-                        assert.NotNil(t, err)
-                        assert.Equal(t, testCase.expectedError, err.Error())
-                        assert.False(t, result)
-                } else {
-                        assert.Nil(t, err)
-                        assert.True(t, result)
-                }
-        }
+		result, err := testBuilder.validate()
+		if testCase.expectedError != "" {
+			assert.NotNil(t, err)
+			assert.Equal(t, testCase.expectedError, err.Error())
+			assert.False(t, result)
+		} else {
+			assert.Nil(t, err)
+			assert.True(t, result)
+		}
+	}
 }
