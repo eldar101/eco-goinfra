@@ -48,23 +48,23 @@ func buildValidSecretBuilder(apiClient *clients.Settings) *Builder {
 }
 
 func buildInvalidSecretBuilder(apiClient *clients.Settings) *Builder {
-        secretBuilder := &Builder{
-                apiClient: apiClient,
-                Definition: &corev1.Secret{
-                        ObjectMeta: metav1.ObjectMeta{
-                                Name:      defaultSecretName,
-                                Namespace: "",
-                        },
-                },
-        }
+	secretBuilder := &Builder{
+		apiClient: apiClient,
+		Definition: &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      defaultSecretName,
+				Namespace: "",
+			},
+		},
+	}
 
-        return secretBuilder
+	return secretBuilder
 }
 
 func buildTestClientWithDummyObject() *clients.Settings {
-    return clients.GetTestClients(clients.TestClientParams{
-        K8sMockObjects: buildSecretWithDummyObject(),
-    })
+	return clients.GetTestClients(clients.TestClientParams{
+		K8sMockObjects: buildSecretWithDummyObject(),
+	})
 }
 
 func buildSecretWithDummyObject() []runtime.Object {
@@ -354,7 +354,6 @@ func TestSecretWithData(t *testing.T) {
 	for _, testCase := range testCases {
 		var runtimeObjects []runtime.Object
 		testBuilder, _ := buildTestBuilderWithFakeObjects(runtimeObjects, defaultSecretName, defaultSecretNamespace)
-
 
 		// Convert the test case data to map[string][]byte
 		data := make(map[string][]byte)
