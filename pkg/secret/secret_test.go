@@ -251,12 +251,7 @@ func TestSecretExists(t *testing.T) {
 
 		testBuilder, _ := buildTestBuilderWithFakeObjects(runtimeObjects, testCase.name, testCase.namespace)
 
-		result := testBuilder.Exists()
-		if testCase.secretExistsAlready {
-			assert.True(t, result)
-		} else {
-			assert.False(t, result)
-		}
+                assert.Equal(t, testCase.secretExistsAlready, testBuilder.Exists())
 	}
 }
 func TestSecretWithOptions(t *testing.T) {
@@ -298,18 +293,13 @@ func TestSecretWithData(t *testing.T) {
 
 		// Convert the test case data to map[string][]byte
 		data := make(map[string][]byte)
-		if testCase.key != "" && testCase.value != "" {
-			data[testCase.key] = []byte(testCase.value)
-		}
+		data[testCase.key] = []byte(testCase.value)
+		
+		testBuilder.WithData(data)
+		assert.Equal(t, testCase.expectedErr, testBuilder.errorMsg)
 
 		if testCase.expectedErr == "" {
-			testBuilder.WithData(data)
-
 			assert.Equal(t, []byte(testCase.value), testBuilder.Definition.Data[testCase.key])
-		} else {
-			testBuilder.WithData(map[string][]byte{})
-
-			assert.Equal(t, testCase.expectedErr, testBuilder.errorMsg)
 		}
 	}
 }
