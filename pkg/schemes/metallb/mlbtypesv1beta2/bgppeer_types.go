@@ -29,12 +29,32 @@ type BGPPeerSpec struct {
 	MyASN uint32 `json:"myASN"`
 
 	// AS number to expect from the remote end of the session.
+	// ASN and DynamicASN are mutually exclusive and one of them must be specified.
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=4294967295
-	ASN uint32 `json:"peerASN"`
+	// +optional
+	ASN uint32 `json:"peerASN,omitempty"`
+
+	// DynamicASN detects the AS number to use for the remote end of the session
+	// without explicitly setting it via the ASN field. Limited to:
+	// internal - if the neighbor's ASN is different than MyASN connection is denied.
+	// external - if the neighbor's ASN is the same as MyASN the connection is denied.
+	// ASN and DynamicASN are mutually exclusive and one of them must be specified.
+	// +kubebuilder:validation:Enum=internal;external
+	// +optional
+	DynamicASN DynamicASNMode `json:"dynamicASN,omitempty"`
 
 	// Address to dial when establishing the session.
-	Address string `json:"peerAddress"`
+	// +optional
+	Address string `json:"peerAddress,omitempty"`
+
+	// Interface is the node interface over which the unnumbered BGP peering will
+	// be established. No API validation takes place as that string value
+	// represents an interface name on the host and if user provides an invalid
+	// value, only the actual BGP session will not be established.
+	// Address and Interface are mutually exclusive and one of them must be specified.
+	// +optional
+	Interface string `json:"interface,omitempty"`
 
 	// Source address to use when establishing the session.
 	// +optional
@@ -42,18 +62,18 @@ type BGPPeerSpec struct {
 
 	// Port to dial when establishing the session.
 	// +optional
-	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=16384
 	// +kubebuilder:default:=179
 	Port uint16 `json:"peerPort,omitempty"`
 
 	// Requested BGP hold time, per RFC4271.
 	// +optional
-	HoldTime metav1.Duration `json:"holdTime,omitempty"`
+	HoldTime *metav1.Duration `json:"holdTime,omitempty"`
 
 	// Requested BGP keepalive time, per RFC4271.
 	// +optional
-	KeepaliveTime metav1.Duration `json:"keepaliveTime,omitempty"`
+	KeepaliveTime *metav1.Duration `json:"keepaliveTime,omitempty"`
 
 	// Requested BGP connect time, controls how long BGP waits between connection attempts to a neighbor.
 	// +kubebuilder:validation:XValidation:message="connect time should be between 1 seconds to 65535",rule="duration(self).getSeconds() >= 1 && duration(self).getSeconds() <= 65535"
@@ -85,10 +105,10 @@ type BGPPeerSpec struct {
 	// +optional
 	BFDProfile string `json:"bfdProfile,omitempty"`
 
-	// EnableGracefulRestart allows BGP peer to continue to forward data packets along
-	// known routes while the routing protocol information is being restored.
-	// This field is immutable because it requires restart of the BGP session
-	// Supported for FRR mode only.
+	// EnableGracefulRestart allows BGP peer to continue to forward data packets
+	// along known routes while the routing protocol information is being
+	// restored. This field is immutable because it requires restart of the BGP
+	// session. Supported for FRR mode only.
 	// +optional
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="EnableGracefulRestart cannot be changed after creation"
 	EnableGracefulRestart bool `json:"enableGracefulRestart,omitempty"`
@@ -104,9 +124,16 @@ type BGPPeerSpec struct {
 	// Add future BGP configuration here
 
 	// To set if we want to disable MP BGP that will separate IPv4 and IPv6 route exchanges into distinct BGP sessions.
+	// Deprecated: DisableMP is deprecated in favor of dualStackAddressFamily.
 	// +optional
 	// +kubebuilder:default:=false
 	DisableMP bool `json:"disableMP,omitempty"`
+
+	// To set if we want to enable the neighbor not only for the ipfamily related to its session,
+	// but also the other one. This allows to advertise/receive IPv4 prefixes over IPv6 sessions and vice versa.
+	// +optional
+	// +kubebuilder:default:=false
+	DualStackAddressFamily bool `json:"dualStackAddressFamily,omitempty"`
 }
 
 // BGPPeerStatus defines the observed state of Peer.
@@ -144,3 +171,10 @@ type BGPPeerList struct {
 func init() {
 	SchemeBuilder.Register(&BGPPeer{}, &BGPPeerList{})
 }
+
+type DynamicASNMode string
+
+const (
+	InternalASNMode DynamicASNMode = "internal"
+	ExternalASNMode DynamicASNMode = "external"
+)
